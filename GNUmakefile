@@ -13,7 +13,8 @@ generate:
 	cd tools; go generate ./...
 
 fmt:
-	gofmt -s -w -e .
+# 	gofmt -s -w -e .
+	golangci-lint fmt
 
 test:
 	go test -v -cover -timeout=120s -parallel=10 ./...
