@@ -1,0 +1,140 @@
+package provider
+
+import (
+	servicesv1 "github.com/PyriteCloud/client-go/lib/gen/pyrite/v1/services/v1"
+	deploymentsv1 "github.com/PyriteCloud/client-go/lib/gen/pyrite/v1/services/v1/deployments/v1"
+)
+
+// buildServiceRequest creates the base UpsertServiceDto shared by both Docker and Postgres deployments.
+func buildServiceRequest(data *ServiceEnvironmentResourceModel) *servicesv1.UpsertServiceDto {
+	env := data.Environment.ValueString()
+
+	return &servicesv1.UpsertServiceDto{
+		ProjectId:   data.ProjectId.ValueString(),
+		Name:        data.Name.ValueString(),
+		Type:        data.Type.ValueString(),
+		Environment: &env,
+	}
+}
+
+// buildDockerSource converts the Terraform image/git configuration into a protobuf DockerDeploymentSourceDto.
+// Validation has already been handled by ConfigValidators.
+func buildDockerSource(cfg *DockerConfigModel) *deploymentsv1.DockerDeploymentSourceDto {
+	if cfg.Image != nil {
+		return &deploymentsv1.DockerDeploymentSourceDto{
+			Image: &deploymentsv1.DockerDeploymentImageSourceDto{
+				Ref: cfg.Image.Ref.ValueString(),
+			},
+		}
+	}
+
+	git := cfg.Git
+
+	var buildCfg *deploymentsv1.DockerDeploymentBuildConfigDto
+	if git.Build != nil {
+		builder := git.Build.Builder.ValueString()
+		contextPath := git.Build.Context.ValueString()
+		dockerfilePath := git.Build.DockerfilePath.ValueString()
+
+		buildCfg = &deploymentsv1.DockerDeploymentBuildConfigDto{
+			Builder:        builder,
+			Context:        &contextPath,
+			DockerfilePath: &dockerfilePath,
+		}
+	}
+
+	sha := git.Sha.ValueString()
+	withBuild := git.WithBuild.ValueBool()
+
+	return &deploymentsv1.DockerDeploymentSourceDto{
+		Git: &deploymentsv1.DockerDeploymentGitSourceDto{
+			RepoUrl:   git.Url.ValueString(),
+			Branch:    git.Branch.ValueString(),
+			Sha:       &sha,
+			WithBuild: &withBuild,
+			Build:     buildCfg,
+		},
+	}
+}
+
+// buildDockerPrimitiveValues converts Terraform primitive values into Go values
+// ready for protobuf DTO construction.
+func buildDockerPrimitiveValues(cfg *DockerConfigModel) dockerPrimitiveValues {
+	values := dockerPrimitiveValues{
+		Runtime:        cfg.Runtime.ValueString(),
+		SourceType:     cfg.SourceType.ValueString(),
+		Plan:           cfg.Plan.ValueString(),
+		IsPrivate:      cfg.IsPrivate.ValueBool(),
+		IsPrivileged:   cfg.IsPrivileged.ValueBool(),
+		WithProjectEnv: cfg.WithProjectEnv.ValueBool(),
+	}
+
+	if !cfg.Command.IsNull() {
+		v := cfg.Command.ValueString()
+		values.Command = &v
+	}
+
+	if !cfg.Args.IsNull() {
+		v := cfg.Args.ValueString()
+		values.Args = &v
+	}
+
+	if !cfg.Env.IsNull() && !cfg.Env.IsUnknown() {
+		v := cfg.Env.ValueString()
+		if v == "" {
+			v = "e30="
+		}
+		values.Env = &v
+	}
+
+	return values
+}
+
+// buildDockerDeploymentConfig converts the Terraform Docker configuration
+// into the protobuf DockerDeploymentDto used by the API.
+func buildDockerDeploymentConfig(cfg *DockerConfigModel) *deploymentsv1.DockerDeploymentDto {
+	values := buildDockerPrimitiveValues(cfg)
+	source := buildDockerSource(cfg)
+
+	return &deploymentsv1.DockerDeploymentDto{
+		SourceType: values.SourceType,
+		Source:     source,
+		Runtime:    values.Runtime,
+		Plan:       values.Plan,
+
+		Command:        values.Command,
+		Args:           values.Args,
+		Env:            values.Env,
+		WithProjectEnv: &values.WithProjectEnv,
+		IsPrivate:      &values.IsPrivate,
+		IsPrivileged:   &values.IsPrivileged,
+
+		PortsList: &deploymentsv1.DeploymentPortList{
+			Ports: buildPortDtos(cfg.PortsList),
+		},
+		RegionsList: &deploymentsv1.DeploymentRegionList{
+			Regions: buildRegionDtos(cfg.RegionsList),
+		},
+		FilesList: &deploymentsv1.DeploymentFileList{
+			Files: buildFileDtos(cfg.FilesList),
+		},
+		VolumesList: &deploymentsv1.DeploymentVolumeList{
+			Volumes: buildVolumeDtos(cfg.VolumesList),
+		},
+		HealthChecksList: &deploymentsv1.DeploymentHealthCheckList{
+			HealthChecks: buildHealthCheckDtos(cfg.HealthChecksList),
+		},
+	}
+}
+
+// buildPostgresDeploymentConfig converts the Terraform Postgres configuration
+// into the protobuf PostgresDeploymentDto used by the API.
+func buildPostgresDeploymentConfig(cfg *PostgresConfigModel) *deploymentsv1.PostgresDeploymentDto {
+	return &deploymentsv1.PostgresDeploymentDto{
+		Version:  cfg.Version.ValueString(),
+		Plan:     cfg.Plan.ValueString(),
+		Region:   cfg.Region.ValueString(),
+		Size:     int32(cfg.Size.ValueInt64()),
+		Password: cfg.Password.ValueString(),
+	}
+}

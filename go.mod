@@ -4,7 +4,7 @@ go 1.25.8
 
 require (
 	connectrpc.com/connect v1.20.0
-	github.com/PyriteCloud/client-go v0.0.0-20260730090135-fde495115a62
+	github.com/PyriteCloud/client-go v0.0.0-20260808140432-bd2883408ece
 	github.com/hashicorp/terraform-plugin-framework v1.19.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.19.0
 	github.com/hashicorp/terraform-plugin-go v0.31.0

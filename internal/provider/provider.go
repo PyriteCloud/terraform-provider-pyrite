@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package provider
 
 import (
@@ -106,6 +103,8 @@ func (p *PyriteProvider) Configure(ctx context.Context, req provider.ConfigureRe
 func (p *PyriteProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewProjectResource,
+		NewServiceResource,
+		NewServiceEnvironmentResource,
 	}
 }
 
