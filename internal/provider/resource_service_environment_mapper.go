@@ -7,13 +7,11 @@ import (
 
 // buildServiceRequest creates the base UpsertServiceDto shared by both Docker and Postgres deployments.
 func buildServiceRequest(data *ServiceEnvironmentResourceModel) *servicesv1.UpsertServiceDto {
-	env := data.Environment.ValueString()
-
 	return &servicesv1.UpsertServiceDto{
 		ProjectId:   data.ProjectId.ValueString(),
 		Name:        data.Name.ValueString(),
 		Type:        data.Type.ValueString(),
-		Environment: &env,
+		Environment: data.Environment.ValueStringPointer(),
 	}
 }
 
@@ -33,25 +31,25 @@ func buildDockerSource(cfg *DockerConfigModel) *deploymentsv1.DockerDeploymentSo
 	var buildCfg *deploymentsv1.DockerDeploymentBuildConfigDto
 	if git.Build != nil {
 		builder := git.Build.Builder.ValueString()
-		contextPath := git.Build.Context.ValueString()
-		dockerfilePath := git.Build.DockerfilePath.ValueString()
+		contextPath := git.Build.Context.ValueStringPointer()
+		dockerfilePath := git.Build.DockerfilePath.ValueStringPointer()
 
 		buildCfg = &deploymentsv1.DockerDeploymentBuildConfigDto{
 			Builder:        builder,
-			Context:        &contextPath,
-			DockerfilePath: &dockerfilePath,
+			Context:        contextPath,
+			DockerfilePath: dockerfilePath,
 		}
 	}
 
-	sha := git.Sha.ValueString()
-	withBuild := git.WithBuild.ValueBool()
+	sha := git.Sha.ValueStringPointer()
+	withBuild := git.WithBuild.ValueBoolPointer()
 
 	return &deploymentsv1.DockerDeploymentSourceDto{
 		Git: &deploymentsv1.DockerDeploymentGitSourceDto{
 			RepoUrl:   git.Url.ValueString(),
 			Branch:    git.Branch.ValueString(),
-			Sha:       &sha,
-			WithBuild: &withBuild,
+			Sha:       sha,
+			WithBuild: withBuild,
 			Build:     buildCfg,
 		},
 	}
@@ -64,27 +62,12 @@ func buildDockerPrimitiveValues(cfg *DockerConfigModel) dockerPrimitiveValues {
 		Runtime:        cfg.Runtime.ValueString(),
 		SourceType:     cfg.SourceType.ValueString(),
 		Plan:           cfg.Plan.ValueString(),
-		IsPrivate:      cfg.IsPrivate.ValueBool(),
-		IsPrivileged:   cfg.IsPrivileged.ValueBool(),
-		WithProjectEnv: cfg.WithProjectEnv.ValueBool(),
-	}
-
-	if !cfg.Command.IsNull() {
-		v := cfg.Command.ValueString()
-		values.Command = &v
-	}
-
-	if !cfg.Args.IsNull() {
-		v := cfg.Args.ValueString()
-		values.Args = &v
-	}
-
-	if !cfg.Env.IsNull() && !cfg.Env.IsUnknown() {
-		v := cfg.Env.ValueString()
-		if v == "" {
-			v = "e30="
-		}
-		values.Env = &v
+		IsPrivate:      cfg.IsPrivate.ValueBoolPointer(),
+		IsPrivileged:   cfg.IsPrivileged.ValueBoolPointer(),
+		WithProjectEnv: cfg.WithProjectEnv.ValueBoolPointer(),
+		Command:        cfg.Command.ValueStringPointer(),
+		Args:           cfg.Args.ValueStringPointer(),
+		Env:            cfg.Env.ValueStringPointer(),
 	}
 
 	return values
@@ -105,9 +88,9 @@ func buildDockerDeploymentConfig(cfg *DockerConfigModel) *deploymentsv1.DockerDe
 		Command:        values.Command,
 		Args:           values.Args,
 		Env:            values.Env,
-		WithProjectEnv: &values.WithProjectEnv,
-		IsPrivate:      &values.IsPrivate,
-		IsPrivileged:   &values.IsPrivileged,
+		WithProjectEnv: values.WithProjectEnv,
+		IsPrivate:      values.IsPrivate,
+		IsPrivileged:   values.IsPrivileged,
 
 		PortsList: &deploymentsv1.DeploymentPortList{
 			Ports: buildPortDtos(cfg.PortsList),

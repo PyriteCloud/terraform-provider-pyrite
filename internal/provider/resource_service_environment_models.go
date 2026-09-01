@@ -101,7 +101,7 @@ type dockerPrimitiveValues struct {
 	Command        *string
 	Args           *string
 	Env            *string
-	IsPrivate      bool
-	IsPrivileged   bool
-	WithProjectEnv bool
+	IsPrivate      *bool
+	IsPrivileged   *bool
+	WithProjectEnv *bool
 }

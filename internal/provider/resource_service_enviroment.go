@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 
@@ -116,24 +115,13 @@ func (r *ServiceEnvironmentResource) Schema(ctx context.Context, req resource.Sc
 								Optional: true,
 								Attributes: map[string]schema.Attribute{
 									"builder": schema.StringAttribute{
-										Optional: true,
-										Computed: true,
-										Default:  stringdefault.StaticString("buildkit"),
-										Validators: []validator.String{
-											stringvalidator.OneOf(
-												"buildkit",
-											),
-										},
+										Required: true,
 									},
 									"context": schema.StringAttribute{
-										Optional: true,
-										Computed: true,
-										Default:  stringdefault.StaticString("."),
+										Required: true,
 									},
 									"dockerfile_path": schema.StringAttribute{
-										Optional: true,
-										Computed: true,
-										Default:  stringdefault.StaticString("Dockerfile"),
+										Required: true,
 									},
 								},
 							},
@@ -173,8 +161,6 @@ func (r *ServiceEnvironmentResource) Schema(ctx context.Context, req resource.Sc
 					},
 					"env": schema.StringAttribute{
 						Optional: true,
-						Computed: true,
-						Default:  stringdefault.StaticString("e30="),
 					},
 					"files": schema.ListNestedAttribute{
 						Optional: true,
@@ -230,15 +216,6 @@ func (r *ServiceEnvironmentResource) Schema(ctx context.Context, req resource.Sc
 					},
 					"plan": schema.StringAttribute{
 						Required: true,
-						Validators: []validator.String{
-							stringvalidator.OneOf(
-								"sNano",
-								"sMicro",
-								"sSmall",
-								"sMedium",
-								"sLarge",
-							),
-						},
 					},
 					"ports": schema.ListNestedAttribute{
 						Optional: true,
@@ -296,24 +273,9 @@ func (r *ServiceEnvironmentResource) Schema(ctx context.Context, req resource.Sc
 					},
 					"plan": schema.StringAttribute{
 						Required: true,
-						Validators: []validator.String{
-							stringvalidator.OneOf(
-								"sSmallDev",
-								"sSmallProd",
-								"sMediumDev",
-								"sMediumProd",
-								"sLargeProd",
-							),
-						},
 					},
 					"region": schema.StringAttribute{
 						Required: true,
-						Validators: []validator.String{
-							stringvalidator.OneOf(
-								"eu-central-1",
-								"us-east-1",
-							),
-						},
 					},
 					"size": schema.Int64Attribute{
 						Required: true,

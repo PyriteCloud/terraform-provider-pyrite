@@ -31,8 +31,8 @@ resource "pyrite_service_environment" "example_service_environment_with_image" {
     plan = "sNano"
 
     # Service access configuration
-    is_private      = false
-    is_privileged   = false
+    is_private       = false
+    is_privileged    = false
     with_project_env = false
 
     # Docker image to deploy
@@ -145,8 +145,8 @@ resource "pyrite_service_environment" "example_service_env_with_git" {
         context = "."
 
         # Dockerfile path
-        # Defaults to "Dockerfile"
-        dockerfile_path = "Dockerfile"
+        # Defaults to "./Dockerfile"
+        dockerfile_path = "./Dockerfile"
       }
     }
 
