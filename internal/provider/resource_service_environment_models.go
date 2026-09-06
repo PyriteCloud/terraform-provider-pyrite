@@ -28,7 +28,7 @@ type DockerConfigModel struct {
 	Plan           types.String `tfsdk:"plan"`
 	Command        types.String `tfsdk:"command"`
 	Args           types.String `tfsdk:"args"`
-	Env            types.String `tfsdk:"env"`
+	Env            types.Map    `tfsdk:"env"`
 	IsPrivate      types.Bool   `tfsdk:"is_private"`
 	IsPrivileged   types.Bool   `tfsdk:"is_privileged"`
 	WithProjectEnv types.Bool   `tfsdk:"with_project_env"`
@@ -70,7 +70,7 @@ type DeploymentVolumeModel struct {
 }
 
 type DeploymentFileModel struct {
-	Path        types.String `tfsdk:"path"`
+	MountPath   types.String `tfsdk:"mount_path"`
 	Content     types.String `tfsdk:"content"`
 	Permissions types.String `tfsdk:"permissions"`
 }

@@ -38,7 +38,7 @@ func (r *ServiceEnvironmentResource) ConfigValidators(ctx context.Context) []res
 
 // ServiceEnvironmentResource defines the resource implementation.
 type ServiceEnvironmentResource struct {
-	client servicesv1connect.ServicesServiceClient
+	client servicesv1connect.ServiceEnvironmentServiceClient
 }
 
 func (r *ServiceEnvironmentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -307,7 +307,7 @@ func (r *ServiceEnvironmentResource) Configure(ctx context.Context, req resource
 		return
 	}
 
-	serviceServiceClient := servicesv1connect.NewServicesServiceClient(client, PYRITE_API_BASE_URL, connect.WithGRPC())
+	serviceEnvironmentServiceClient := servicesv1connect.NewServiceEnvironmentServiceClient(client, PYRITE_API_BASE_URL, connect.WithGRPC())
 
-	r.client = serviceServiceClient
+	r.client = serviceEnvironmentServiceClient
 }

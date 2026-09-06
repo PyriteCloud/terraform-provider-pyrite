@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"context"
+
 	servicesv1 "github.com/PyriteCloud/client-go/lib/gen/pyrite/v1/services/v1"
 	deploymentsv1 "github.com/PyriteCloud/client-go/lib/gen/pyrite/v1/services/v1/deployments/v1"
 )
@@ -57,7 +59,15 @@ func buildDockerSource(cfg *DockerConfigModel) *deploymentsv1.DockerDeploymentSo
 
 // buildDockerPrimitiveValues converts Terraform primitive values into Go values
 // ready for protobuf DTO construction.
-func buildDockerPrimitiveValues(cfg *DockerConfigModel) dockerPrimitiveValues {
+func buildDockerPrimitiveValues(
+	ctx context.Context,
+	cfg *DockerConfigModel,
+) (dockerPrimitiveValues, error) {
+	env, err := buildEnvValue(ctx, cfg.Env)
+	if err != nil {
+		return dockerPrimitiveValues{}, err
+	}
+
 	values := dockerPrimitiveValues{
 		Runtime:        cfg.Runtime.ValueString(),
 		SourceType:     cfg.SourceType.ValueString(),
@@ -67,16 +77,23 @@ func buildDockerPrimitiveValues(cfg *DockerConfigModel) dockerPrimitiveValues {
 		WithProjectEnv: cfg.WithProjectEnv.ValueBoolPointer(),
 		Command:        cfg.Command.ValueStringPointer(),
 		Args:           cfg.Args.ValueStringPointer(),
-		Env:            cfg.Env.ValueStringPointer(),
+		Env:            env,
 	}
 
-	return values
+	return values, nil
 }
 
 // buildDockerDeploymentConfig converts the Terraform Docker configuration
 // into the protobuf DockerDeploymentDto used by the API.
-func buildDockerDeploymentConfig(cfg *DockerConfigModel) *deploymentsv1.DockerDeploymentDto {
-	values := buildDockerPrimitiveValues(cfg)
+func buildDockerDeploymentConfig(
+	ctx context.Context,
+	cfg *DockerConfigModel,
+) (*deploymentsv1.DockerDeploymentDto, error) {
+	values, err := buildDockerPrimitiveValues(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	source := buildDockerSource(cfg)
 
 	return &deploymentsv1.DockerDeploymentDto{
@@ -107,7 +124,7 @@ func buildDockerDeploymentConfig(cfg *DockerConfigModel) *deploymentsv1.DockerDe
 		HealthChecksList: &deploymentsv1.DeploymentHealthCheckList{
 			HealthChecks: buildHealthCheckDtos(cfg.HealthChecksList),
 		},
-	}
+	}, nil
 }
 
 // buildPostgresDeploymentConfig converts the Terraform Postgres configuration

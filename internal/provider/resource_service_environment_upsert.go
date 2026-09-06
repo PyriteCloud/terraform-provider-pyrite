@@ -18,23 +18,45 @@ func (r *ServiceEnvironmentResource) upsertServiceEnv(
 	request := buildServiceRequest(data)
 
 	if data.DockerConfig != nil {
+		dockerConfig, err := buildDockerDeploymentConfig(
+			ctx,
+			data.DockerConfig,
+		)
+		if err != nil {
+			diags.AddError(
+				"Invalid Docker configuration",
+				err.Error(),
+			)
+			return
+		}
+
 		request.DeploymentConfig = &servicesv1.UpsertServiceDto_DockerConfig{
-			DockerConfig: buildDockerDeploymentConfig(data.DockerConfig),
+			DockerConfig: dockerConfig,
 		}
 	} else {
 		request.DeploymentConfig = &servicesv1.UpsertServiceDto_PostgresConfig{
-			PostgresConfig: buildPostgresDeploymentConfig(data.PostgresConfig),
+			PostgresConfig: buildPostgresDeploymentConfig(
+				data.PostgresConfig,
+			),
 		}
 	}
 
-	serviceEnvRes, err := r.client.UpsertService(ctx, connect.NewRequest(request))
+	serviceEnvRes, err := r.client.UpsertService(
+		ctx,
+		connect.NewRequest(request),
+	)
 	if err != nil {
 		diags.AddError(
 			"Client Error",
-			fmt.Sprintf("Unable to upsert service environment: %v", err),
+			fmt.Sprintf(
+				"Unable to upsert service environment: %v",
+				err,
+			),
 		)
 		return
 	}
 
-	data.Id = types.StringValue(serviceEnvRes.Msg.Service.Id)
+	data.Id = types.StringValue(
+		serviceEnvRes.Msg.Service.Id,
+	)
 }

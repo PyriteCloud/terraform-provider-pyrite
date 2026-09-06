@@ -1,6 +1,15 @@
 package provider
 
-import deploymentsv1 "github.com/PyriteCloud/client-go/lib/gen/pyrite/v1/services/v1/deployments/v1"
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+
+	deploymentsv1 "github.com/PyriteCloud/client-go/lib/gen/pyrite/v1/services/v1/deployments/v1"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	t "github.com/julien040/go-ternary"
+)
 
 // buildHealthCheckDtos converts Terraform health check models into protobuf DTOs.
 func buildHealthCheckDtos(
@@ -11,7 +20,12 @@ func buildHealthCheckDtos(
 	for _, h := range checks {
 		port := int32(h.Port.ValueInt64())
 		protocol := h.Protocol.ValueString()
-		path := h.Path.ValueString()
+
+		path := t.If(
+			!h.Path.IsNull() && !h.Path.IsUnknown(),
+			stringPtr(h.Path.ValueString()),
+			(*string)(nil),
+		)
 
 		initialDelay := int32(h.InitialDelay.ValueInt64())
 		interval := int32(h.Interval.ValueInt64())
@@ -21,7 +35,7 @@ func buildHealthCheckDtos(
 		result = append(result, &deploymentsv1.DeploymentHealthCheckDto{
 			Port:         port,
 			Protocol:     protocol,
-			Path:         &path,
+			Path:         path,
 			InitialDelay: initialDelay,
 			Interval:     interval,
 			Timeout:      timeout,
@@ -67,11 +81,15 @@ func buildVolumeDtos(volumes []DeploymentVolumeModel) []*deploymentsv1.Deploymen
 	result := make([]*deploymentsv1.DeploymentVolumeDto, 0, len(volumes))
 
 	for _, v := range volumes {
-		teamVolumeId := v.TeamVolumeId.ValueString()
+		teamVolumeId := t.If(
+			!v.TeamVolumeId.IsNull() && !v.TeamVolumeId.IsUnknown(),
+			stringPtr(v.TeamVolumeId.ValueString()),
+			(*string)(nil),
+		)
 
 		result = append(result, &deploymentsv1.DeploymentVolumeDto{
 			MountPath:    v.MountPath.ValueString(),
-			TeamVolumeId: &teamVolumeId,
+			TeamVolumeId: teamVolumeId,
 		})
 	}
 
@@ -83,16 +101,52 @@ func buildFileDtos(files []DeploymentFileModel) []*deploymentsv1.DeploymentFileD
 	result := make([]*deploymentsv1.DeploymentFileDto, 0, len(files))
 
 	for _, f := range files {
-		path := f.Path.ValueString()
-		content := f.Content.ValueString()
-		permissions := f.Permissions.ValueString()
+		path := f.MountPath.ValueString()
+		content := base64.StdEncoding.EncodeToString(
+			[]byte(f.Content.ValueString()),
+		)
+		permissions := t.If(
+			f.Permissions.IsNull() || f.Permissions.IsUnknown(),
+			(*string)(nil),
+			stringPtr(f.Permissions.ValueString()),
+		)
 
 		result = append(result, &deploymentsv1.DeploymentFileDto{
 			MountPath:   path,
 			Content:     content,
-			Permissions: &permissions,
+			Permissions: permissions,
 		})
 	}
 
 	return result
+}
+
+func buildEnvValue(ctx context.Context, env types.Map) (*string, error) {
+	if env.IsNull() || env.IsUnknown() {
+		return nil, nil
+	}
+
+	var values map[string]string
+
+	diags := env.ElementsAs(ctx, &values, false)
+
+	if diags.HasError() {
+		return nil, fmt.Errorf(
+			"failed to convert Terraform env map: %s",
+			diags.Errors()[0].Summary(),
+		)
+	}
+
+	data, err := json.Marshal(values)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal env: %w", err)
+	}
+
+	encoded := base64.StdEncoding.EncodeToString(data)
+
+	return &encoded, nil
+}
+
+func stringPtr(value string) *string {
+	return &value
 }

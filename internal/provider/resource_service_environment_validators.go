@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -336,5 +337,55 @@ func (v regionValidator) ValidateResource(
 		}
 
 		seen[region] = struct{}{}
+	}
+}
+
+// -----------------------------------------------------------------------------
+// File permissions validator
+// -----------------------------------------------------------------------------
+
+var filePermissionsRegex = regexp.MustCompile(`^[0-7]{4}$`)
+
+type filePermissionsValidator struct{}
+
+func (v filePermissionsValidator) Description(ctx context.Context) string {
+	return "Validate file permissions."
+}
+
+func (v filePermissionsValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v filePermissionsValidator) ValidateResource(
+	ctx context.Context,
+	req resource.ValidateConfigRequest,
+	resp *resource.ValidateConfigResponse,
+) {
+	data := loadServiceEnvConfig(ctx, req, resp)
+	if data == nil || data.DockerConfig == nil {
+		return
+	}
+
+	for i, file := range data.DockerConfig.FilesList {
+		// Skip null and unknown values.
+		if file.Permissions.IsNull() || file.Permissions.IsUnknown() {
+			continue
+		}
+
+		permissions := file.Permissions.ValueString()
+
+		if !filePermissionsRegex.MatchString(permissions) {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("docker_config").
+					AtName("files").
+					AtListIndex(i).
+					AtName("permissions"),
+				"Invalid file permissions",
+				fmt.Sprintf(
+					"File permissions must be a 4-digit octal value between 0000 and 7777, got %q.",
+					permissions,
+				),
+			)
+		}
 	}
 }
