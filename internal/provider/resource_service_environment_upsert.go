@@ -41,7 +41,7 @@ func (r *ServiceEnvironmentResource) upsertServiceEnv(
 		}
 	}
 
-	serviceEnvRes, err := r.client.UpsertService(
+	serviceEnvRes, err := r.serviceClient.UpsertService(
 		ctx,
 		connect.NewRequest(request),
 	)

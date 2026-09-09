@@ -24,7 +24,7 @@ func (r *ServiceEnvironmentResource) Read(ctx context.Context, req resource.Read
 		Id: data.Id.ValueString(),
 	})
 
-	serviceEnvironmentRes, err := r.client.FindOneServiceEnvironment(ctx, request)
+	serviceEnvironmentRes, err := r.serviceEnvironmentClient.FindOneServiceEnvironment(ctx, request)
 
 	fmt.Println(serviceEnvironmentRes, err)
 
@@ -99,7 +99,7 @@ func (r *ServiceEnvironmentResource) Delete(ctx context.Context, req resource.De
 		Id: data.Id.ValueString(),
 	})
 
-	_, err := r.client.DeleteServiceEnvironment(ctx, request)
+	_, err := r.serviceEnvironmentClient.DeleteServiceEnvironment(ctx, request)
 
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete service, got error: %s", err))
